@@ -135,7 +135,7 @@ For a success:
 	"success": true,
 	"value": "[the parsed value]",
 	"remaining": {
-		"string": 'An example input',
+		"string": "An example input",
 		"index": 7
 	}
 }
