@@ -1,0 +1,22 @@
+{
+  "name": "parse-ls",
+  "version": "1.0.0",
+  "author": "Bob Davidson <bob@pageofbob.com>",
+  "keywords": [
+    "ls",
+    "livescript",
+    "parsing"
+  ],
+  "main": "lib/parse.js",
+  "files": [
+    "lib/",
+    "README.md",
+    "LICENSE"
+  ],
+  "devDependencies": {
+    "grunt": "~0.4.2",
+    "grunt-mocha-test": "~0.8.1",
+    "LiveScript": "~1.2.0",
+    "grunt-livescript": "~0.5.1"
+  }
+}
