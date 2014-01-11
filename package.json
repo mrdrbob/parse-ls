@@ -13,6 +13,16 @@
     "README.md",
     "LICENSE"
   ],
+  "licenses": [
+    {
+      "type": "Apache-2.0",
+      "url": "https://raw.github.com/mrdrbob/parse-ls/master/LICENSE"
+    }
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/mrdrbob/parse-ls.git"
+  },
   "devDependencies": {
     "grunt": "~0.4.2",
     "grunt-mocha-test": "~0.8.1",

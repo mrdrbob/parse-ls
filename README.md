@@ -108,8 +108,8 @@ Rules expect input in the following format:
 
 ```json
 {
-	string: 'An example input',
-	index: 5
+	"string": "An example input",
+	"index": 5
 }
 ```
 
@@ -117,26 +117,26 @@ The input contains a reference to the full `string` being evaluated, and an `ind
 
 ```json
 {
-	string: 'An example input',
-	index: 6
+	"string": "An example input",
+	"index": 6
 }
 ```
 
 Rules should return output in one of the following formats.  For a failure, simply:
 
 ```json
-{ success: false }
+{ "success": false }
 ```
 
 For a success:
 
 ```json
 {
-	success: true,
-	value: "[the parsed value]",
-	remaining: {
-		string: 'An example input',
-		index: 7
+	"success": true,
+	"value": "[the parsed value]",
+	"remaining": {
+		"string": 'An example input',
+		"index": 7
 	}
 }
 ```
