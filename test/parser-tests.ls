@@ -1,6 +1,6 @@
 
 { equal: eq, deep-equal: deep-eq } = require 'assert'
-{ to-input, simple, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, join-string, at-least-once, sequence, text, maybe, except, do-until, delay, end, always, parse, convert-rule-to-function } = (require '../src/parse')
+{ to-input, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, join-string, at-least-once, sequence, text, maybe, except, do-until, delay, end, always, parse, convert-rule-to-function, line-and-column } = (require '../src/parse')
 
 describe \Parser ->
 	describe \to-input ->
@@ -15,8 +15,8 @@ describe \Parser ->
 
 	# Convenience methods
 	should-fail = ->
-		deep-eq it, do
-			success: false
+		eq false, it.success
+
 	should-match = (value, index, res) -->
 		deep-eq res, do
 			success: true
@@ -35,6 +35,24 @@ describe \Parser ->
 		specify 'works with more complex rules' ->
 			match-function = -> it >= 'a' && it <= 'z'
 			input |> simple match-function |> should-match \s, 1
+
+	describe \with-error-message ->
+		specify 'should override the error message of a failure' ->
+			match-function = (c) -> c == \a
+			result = input |> (simple match-function |> with-error-message 'expected "a"')
+			eq false, result.success
+			eq 'expected "a"', result.message
+		specify 'should only override the the current error message' ->
+			match-s = (simple (c) -> c == \s) |> with-error-message 'expected "s"'
+			match-a = (simple (c) -> c == \a) |> with-error-message 'expected "a"'
+			result = input |> (match-s |> then-concat match-a)
+			eq false, result.success
+			eq 'expected "a"', result.message
+			eq 1, result.last-success.index
+		specify 'should not affect successes' ->
+			match-function = (c) -> c == \s
+			result = input |> (simple match-function |> with-error-message 'expected "s"') |> should-match \s, 1
+
 
 	describe \any ->
 		specify 'always succeeds if there is input to be consumed and consumes input' ->
@@ -103,11 +121,19 @@ describe \Parser ->
 		specify 'succeeds when second rule passes' ->
 			rule = char \t |> $or (char \s)
 			input |> rule |> should-match \s, 1
+		specify 'fails when both rules fail' ->
+			rule = char \a |> $or (char \b)
+			input |> rule |> should-fail
 		specify 'should short-curcuit' ->
 			debug-has-run = false
 			rule = char \s |> $or (char \t |> (debug -> debug-has-run := true))
 			input |> rule |> should-match \s, 1
 			eq false, debug-has-run
+		specify 'returns both all messages when both rules fail' ->
+			rule = char \a |> $or (char \b) |> $or (char \c)
+			err = input |> rule
+			eq false, err.success
+			eq "expected 'a' or expected 'b' or expected 'c'", err.message
 
 	describe \any-of ->
 		specify 'returns result of first successful rule' ->
@@ -232,3 +258,32 @@ describe \Parser ->
 			eq \st, correct-result
 			incorrect-result = rule-function \bad
 			eq false, incorrect-result
+
+	describe \line-and-column ->
+		specify 'correctly counts \\n lines and columns' ->
+			# col              1234 123  123
+			# line             1    2    3
+			# index            0123 4567 89
+			input = { string: 'abc\nefg\nhij', index: 9 }
+			result = line-and-column input
+			deep-eq result, do
+				line: 3,
+				column: 2
+		specify 'handles \\r line endings' ->
+			# col              1234 123  123
+			# line             1    2    3
+			# index            0123 4567 89
+			input = { string: 'abc\refg\rhij', index: 9 }
+			result = line-and-column input
+			deep-eq result, do
+				line: 3,
+				column: 2
+		specify 'handles CRLF line endings' ->
+			# col              1234 123  123
+			# line             1    2    3
+			# index            0123 4 5678 8 901
+			input = { string: 'abc\r\nefg\r\nhij', index: 11 }
+			result = line-and-column input
+			deep-eq result, do
+				line: 3,
+				column: 2

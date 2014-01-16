@@ -17,19 +17,22 @@ input-current-letter = ({string, index}) -> string.charAt(index)
 pass = (value, remaining) -> { success: true, value, remaining }
 
 # Utility function to return a failure result object
-fail = -> {success: false}
+fail = (message, last-success, last-value) -> { success: false, message, last-success, last-value }
+
+# Maps a failure message.  Useful for rules like 'simple' that return generic error messages.
+with-error-message = (message, rule, input) --> if (res = rule input).success then res else fail message, res.last-success, res.last-value
 
 # A basic rule.  `test` should be a function that expects 1 character and returns true if that character matches the critera.
-simple = (test, input) --> if !(input-at-eof input) && test (value = input-current-letter input) then pass value, (input-next input) else fail!
+simple = (test, input) --> if !(input-at-eof input) && test (value = input-current-letter input) then pass value, (input-next input) else fail 'simple rule failed', input
 
 # A simple rule that always succeeds and consumes input.
 any = -> simple -> true
 
 # Matches a single character.
-char = (c) -> simple -> it == c
+char = (c) -> (simple -> it == c) |> with-error-message "expected '#{c}'"
 
 # Converts a value from a previous rule to something different
-map = (convert, rule, input) --> if !(res = rule input).success then fail! else pass (convert res.value), res.remaining
+map = (convert, rule, input) --> if !(res = rule input).success then res else pass (convert res.value), res.remaining
 
 # Injects a function between rules for debugging
 debug = (do-this, rule) --> rule |> map ->
@@ -37,7 +40,7 @@ debug = (do-this, rule) --> rule |> map ->
 	it
 
 # Matches the `first` rule, if it succeeds, then the `second` rule.  If both succeed, executes the `combine` method to combine their results into a single value.
-$then = (second, combine, first, input) --> if (res1 = first input).success then (if (res2 = second res1.remaining).success then pass (combine res1.value, res2.value), res2.remaining else fail!) else fail!
+$then = (second, combine, first, input) --> if (res1 = first input).success then (if (res2 = second res1.remaining).success then pass (combine res1.value, res2.value), res2.remaining else res2) else res1
 
 # Shorthand to keep the results of the next rule in the chain
 then-keep = (rule) -> $then rule, (x, y) -> y
@@ -55,14 +58,14 @@ then-null = (rule) -> $then rule, -> null
 then-array-concat = (rule) -> $then rule, (x, y) -> x ++ y
 
 # Attempts the `first` rule, if it succeeds, return its results, otherwise attempts the `second` rule.
-$or = (second, first, input) --> if (res = first input).success then res else second input
+$or = (second, first, input) --> if (res1 = first input).success then res1 else (if (res2 = second input).success then res2 else fail "#{res1.message} or #{res2.message}", input)
 
 # Returns the first result that matches any of the provied `rules`
 any-of = (rules, input) -->
 	for r in rules
 		if (res = r input).success
 			return res
-	fail!
+	fail 'any-of failed', input
 
 # Attempts a rule repeatedly until it fails, returning results in an array.  Rules that fail immediately still succeed with empty arrays
 many = (rule, input) -->
@@ -85,7 +88,7 @@ sequence = (rules, input) -->
 	output = []
 	for r in rules
 		if !(res = r remaining).success
-			return fail!
+			return res
 		output.push res.value
 		remaining = res.remaining
 	pass output, res.remaining
@@ -101,13 +104,13 @@ text = (value) ->
 maybe = (rule, input) --> if (res = rule input).success then res else pass null, input
 
 # Matches anything that doesn't match the `bad` rule.
-except = (bad, rule, input) --> if (bad input).success then fail! else (rule input)
+except = (bad, rule, input) --> if (bad input).success then fail 'except matched', input else (rule input)
 
 # Matches until `bad` rule succeeds
 do-until = (bad, rule) --> rule |> except bad |> many
 
 # Rule to exept the input to be at the end
-expect-end = (input) -> if input-at-eof input then pass null, input else fail!
+expect-end = (input) -> if input-at-eof input then pass null, input else fail 'expected end-of-input', input
 
 # Convience method to tack on to a rule chain to ensure input is completely consumed.
 end = (rule) -> rule |> then-ignore expect-end
@@ -131,4 +134,23 @@ parse = (rule, input) --> if (res = rule input).success then res.value else fals
 # Converts a rule to a function which either returns a value, or false if the value could not be parsed.
 convert-rule-to-function = (rule, input-string) --> to-input input-string |> (rule |> parse)
 
-module.exports = { to-input, simple, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, join-string, at-least-once, sequence, text, maybe, except, do-until, delay, end, always, parse, convert-rule-to-function }
+# Converts an index into a line and column position to make errors easier to find in text editors
+line-and-column = ({string, index}) ->
+	last-char = null
+	line = 1
+	column = 0
+
+	for x from 0 to index
+		c = string.char-at x
+		column += 1
+		if c == '\n' or c == '\r'
+			# reset the column
+			column = 0
+			# Last-char prevents windows line-endings (\r\n) from counting as 2 lines.
+			if c == '\r' or last-char != '\r'
+				line += 1
+		last-char = c
+
+	{ line, column }
+
+module.exports = { to-input, input-next, input-at-eof, input-current-letter, pass, fail, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, join-string, at-least-once, sequence, text, maybe, except, do-until, delay, end, always, parse, convert-rule-to-function, line-and-column }

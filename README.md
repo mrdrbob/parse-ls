@@ -29,6 +29,96 @@ parse-string-literal = convert-rule-to-function string-rule
 parse-string-literal '"I love \\"unnecessary\\" quotes!"' # I love "unnecessary" quotes!
 ```
 
+What is a Rule?
+---------------
+
+In parse.ls, a rule is a simple function that accepts an input and returns a result, with either a success status or a failure status.
+
+Rules expect input in the following format:
+
+```json
+{
+	"string": "An example input",
+	"index": 5
+}
+```
+
+The input contains a reference to the full `string` being evaluated, and an `index` of where the parser is currently at.  Input in this format should be treated as immutable.  When a rule consumes input, it does not change the current input, but returns a new input with only the `index` changed.  IE:
+
+```json
+{
+	"string": "An example input",
+	"index": 6
+}
+```
+
+Rules should return output in one of the following formats.  For a failure, the rule returns failure status, the successfully parsed input so far (in the same format as above), and any last known parsed value if applicable:
+
+```json
+{
+	"success": false,
+	"message": "expected 'z'"
+	"lastSuccess": {
+		"string": "An example input",
+		"index": 6
+	},
+	"lastValue": "a"
+}
+```
+
+For a success:
+
+```json
+{
+	"success": true,
+	"value": "[the parsed value]",
+	"remaining": {
+		"string": "An example input",
+		"index": 7
+	}
+}
+```
+
+The success result has a true `success` status, contains the parsed value (which could be any thing: a string, an array, an object, etc.), and the remaining input after the rule has consumed input.
+
+For example, he's a simple rule that will match any numberic digit passed to it, written in LiveScript:
+
+```ls
+matches-digit = (input) ->
+	# if we're at the end of the input, return failure.
+	return { success: false, message: 'unexpected end of file', last-success: input } if (input.index >= input.string.length)
+
+	# get the current char
+	current-character = input.string.charAt input.index
+
+	# see if it's in range
+	is-in-range = current-character >= \0 && current-character <= \9
+
+	# Return a failure result if it's not in range.
+	if !is-in-range
+		{ success: false, message: 'expected a digit', last-success: input }
+	else
+		# Otherwise, return a success with the matched character as a
+		# value.  Also return a new input with the index incremented by
+		# 1, which is how many characters of input this rule consumed.
+		{
+			success: true,
+			value: current-character,
+			remaining: {
+				string: input.string,
+				index: input.index + 1
+			}
+		}
+```
+
+There's a lot of plumbing in this rule that's already taken care of in the parse.ls framework, and this could much more succinctly be written as:
+
+```ls
+matches-digit = (simple -> it >= \0 and it <= \9) |> with-error-message 'expected a digit'
+```
+
+Take a look at the [parse.ls](src/parse.ls) source file and the [unit tests](test/parser-tests.ls) for more examples.
+
 Available Rules
 ---------------
 
@@ -38,6 +128,8 @@ These are the rules that are included with Parse.ls.  To see basic examples of t
 
 `simple` - The most basic rule.  It accepts a delegate that accepts one parameter (the individual character being tested), and returns true if the letter is matched, otherwise false.
  
+`with-error-message` - A rule to change the error message from the last rule (if it fails).  This is useful for rules like `simple` that just return generic error messages.  For example, an error message from `match-a = simple (c) -> c == \a` would simply say `simple rule failed`.  To make the error message more clear, you could do this: `match-a = (simple (c) -> c == \a) |> with-error-message 'expected "a"``.
+
 `any` - Will match any character at all and consume that input.  If the input is at the end, it will fail.
 
 `char` - Matches an individual, specific character.
@@ -99,90 +191,26 @@ command = get-command |> $or set-command |> $or command-block
 
 `convert-rule-to-function` - Converts a rule to a function which either returns a value, or false if the value could not be parsed.
 
-What is a Rule?
----------------
+Utility Functions
+-----------------
 
-In parse.ls, a rule is a simple function that accepts an input and returns a result, with either a success status or a failure status.
+Included are a few utility functions that aren't exactly rules, but may make writing custom rules more clear.
 
-Rules expect input in the following format:
+`input-at-eof` - Accepts an input object and returns true if the index is at or beyond the length of the input.
 
-```json
-{
-	"string": "An example input",
-	"index": 5
-}
-```
+`input-next` - Accepts an input object and returns a new input object with the index incremented by one.
 
-The input contains a reference to the full `string` being evaluated, and an `index` of where the parser is currently at.  Input in this format should be treated as immutable.  When a rule consumes input, it does not change the current input, but returns a new input with only the `index` changed.  IE:
+`input-current-letter` - Accepts an input object and returns the char at the current index.
 
-```json
-{
-	"string": "An example input",
-	"index": 6
-}
-```
+`pass` - Accepts a parsed value and the remaining input (after a rule has run) and returns a result object.
 
-Rules should return output in one of the following formats.  For a failure, simply:
+`fail` - Accepts an error message, an input object, and optionally a parsed value.  The error message describes what failed, the input object represents the last successfully parsed input, and the parsed value (if provided) is the last successfully parsed value.
 
-```json
-{ "success": false }
-```
+Also one function to make error reporting more clear:
 
-For a success:
-
-```json
-{
-	"success": true,
-	"value": "[the parsed value]",
-	"remaining": {
-		"string": "An example input",
-		"index": 7
-	}
-}
-```
-
-The success result has a true `success` status, contains the parsed value (which could be any thing: a string, an array, an object, etc.), and the remaining input after the rule has consumed input.
-
-For example, he's a simple rule that will match any numberic digit passed to it, written in LiveScript:
-
-```ls
-matches-digit = (input) ->
-	# if we're at the end of the input, return failure.
-	return { success: false } if (input.index >= input.string.length)
-
-	# get the current char
-	current-character = input.string.charAt input.index
-
-	# see if it's in range
-	is-in-range = current-character >= \0 && current-character <= \9
-
-	# Return a failure result if it's not in range.
-	if !is-in-range
-		{ success: false }
-	else
-		# Otherwise, return a success with the matched character as a
-		# value.  Also return a new input with the index incremented by
-		# 1, which is how many characters of input this rule consumed.
-		{
-			success: true,
-			value: current-character,
-			remaining: {
-				string: input.string,
-				index: input.index + 1
-			}
-		}
-```
-
-There's a lot of plumbing in this rule that's already taken care of in the parse.ls framework, and this could much more succinctly be written as:
-
-```ls
-matches-digit = simple -> it >= \0 and it <= \9
-```
-
-Take a look at the [parse.ls](src/parse.ls) source file and the [unit tests](test/parser-tests.ls) for more examples.
+`line-and-column` - Accepts a string and an index (an input object), and calculates the line and column number of the index.  Useful for returning an error position in a format that is more friendly for text editors.
 
 Todo
 ----
 
-- Better error reporting (currently just returns `{success:false}` with no helpful information)
-- More documentation with more complete examples that make use of all  included rules.
+- More documentation with more complete examples that make use of all included rules.
