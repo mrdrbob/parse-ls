@@ -235,7 +235,7 @@ describe \Parser ->
 			not-i = any! |> except (char \i)
 			input |> (not-i |> many |> join-string) |> should-match \str, 3
 
-	describe \until ->
+	describe \do-until ->
 		specify 'should match until rule matches' ->
 			input |> (any! |> do-until (char \n) |> join-string ) |> should-match \stri, 4
 		specify 'should succeed even with no matches' ->
