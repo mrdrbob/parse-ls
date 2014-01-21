@@ -76,6 +76,19 @@ many = (rule, input) -->
 		remaining = res.remaining
 	pass output, remaining
 
+# Expects a rule to succeed exactly `count` times.
+times = (count, rule, input) -->
+	output = []
+	remaining = input
+	while (res = rule remaining).success and count
+		output.push res.value
+		remaining = res.remaining
+		count -= 1
+	if count
+		fail "#{res.message} #{count} more time(s)"
+	else
+		pass output, remaining
+
 # Convenience method for joining an array result into a string
 join-string = (rule) -> rule |> map -> it.join ''
 
@@ -153,4 +166,4 @@ line-and-column = ({string, index}) ->
 
 	{ line, column }
 
-module.exports = { to-input, input-next, input-at-eof, input-current-letter, pass, fail, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, join-string, at-least-once, sequence, text, maybe, except, do-until, delay, end, always, parse, convert-rule-to-function, line-and-column }
+module.exports = { to-input, input-next, input-at-eof, input-current-letter, pass, fail, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, join-string, at-least-once, sequence, text, maybe, except, do-until, delay, end, always, parse, convert-rule-to-function, line-and-column }

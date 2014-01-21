@@ -152,9 +152,11 @@ These are the rules that are included with Parse.ls.  To see basic examples of t
  
 `$or` - Attempts the `first` rule, if it succeeds, return its results, otherwise attempts the `second` rule.
 
-`any-of` - Accepts an arry of rules and returns the first result that succeeds.
+`any-of` - Accepts an array of rules and returns the first result that succeeds.
 
 `many` - Attempts a rule repeatedly until it fails, returning results in an array.  Rules that fail immediately still succeed with empty arrays.
+
+`times` - Attempts a rule a set number of time.  A rule can match more than the specified times, but will only be applied the specified number of times.  If the input does not match enough times, the rule fails.  May be useful for parsing fixed-width fields, like dates in a YYYY-MM-DD format.  A rule requiring 0 matches will always succeed.
 
 `join-string` - Convenience method for joining an array result into a string
 
