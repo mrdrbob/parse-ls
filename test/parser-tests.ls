@@ -1,6 +1,6 @@
 
 { equal: eq, deep-equal: deep-eq } = require 'assert'
-{ to-input, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, at-least, at-least-once, join-string, sequence, text, maybe, except, do-until, delay, end, always, parse, convert-rule-to-function, line-and-column } = (require '../src/parse')
+{ to-input, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, at-least, at-least-once, join-string, sequence, text, maybe, except, do-until, delay, end, always, always-new, parse, convert-rule-to-function, line-and-column } = (require '../src/parse')
 
 describe \Parser ->
 	describe \to-input ->
@@ -261,8 +261,15 @@ describe \Parser ->
 			input |> (text \string |> end) |> should-match \string, 6
 
 	describe \always ->
-		specify 'always returns a value without  consuming input' ->
-			input |> always -> \1 |> should-match \1, 0
+		specify 'always returns a value without consuming input' ->
+			input |> always \1 |> should-match \1, 0
+
+	describe \always-new ->
+		specify 'returns result of callback without consuming input' ->
+			count = 0
+			callback = -> count := count + 1
+			input |> always-new callback |> should-match 1, 0
+			input |> always-new callback |> should-match 2, 0
 
 	describe \delay ->
 		specify 'returns a rule at parse time' ->

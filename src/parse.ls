@@ -144,6 +144,9 @@ delay = (getRule, input) --> getRule! input
 # Always returns a result without consuming input.  Useful for optional values or starting off with a particular object as the value.
 always = (value, input) --> pass value, input
 
+# Always returns a success with the result of the callback as the value. Does not consume input.
+always-new = (callback, input) --> pass callback!, input
+
 # Attempts to parse the input, returns the value if successful, otherwise false
 parse = (rule, input) --> if (res = rule input).success then res.value else false;
 
@@ -169,4 +172,4 @@ line-and-column = ({string, index}) ->
 
 	{ line, column }
 
-module.exports = { to-input, input-next, input-at-eof, input-current-letter, pass, fail, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, at-least, at-least-once, join-string, sequence, text, maybe, except, do-until, delay, end, always, parse, convert-rule-to-function, line-and-column }
+module.exports = { to-input, input-next, input-at-eof, input-current-letter, pass, fail, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, at-least, at-least-once, join-string, sequence, text, maybe, except, do-until, delay, end, always, always-new, parse, convert-rule-to-function, line-and-column }

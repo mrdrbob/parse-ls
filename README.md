@@ -189,7 +189,9 @@ command-block = char '{'
 command = get-command |> $or set-command |> $or command-block
 ```
 
-`always ()` - Always returns a result without consuming input.  Useful for optional values or starting off with a particular object as the value.
+`always (value)` - Always returns a result without consuming input.  Useful for optional values or starting off with a particular object as the value.
+
+`always-new (callback)` - Always returns the result of the callback without consuming input.  Useful for returning new objects with each execution of the rule.
 
 `parse ()` - Attempts to parse the input, returns the value if successful, otherwise false
 
