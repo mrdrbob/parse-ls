@@ -1,6 +1,6 @@
 
 { equal: eq, deep-equal: deep-eq } = require 'assert'
-{ to-input, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, join-string, at-least-once, sequence, text, maybe, except, do-until, delay, end, always, parse, convert-rule-to-function, line-and-column } = (require '../src/parse')
+{ to-input, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, at-least, at-least-once, join-string, sequence, text, maybe, except, do-until, delay, end, always, parse, convert-rule-to-function, line-and-column } = (require '../src/parse')
 
 describe \Parser ->
 	describe \to-input ->
@@ -176,13 +176,13 @@ describe \Parser ->
 			input |> rule |> should-match \string, 6
 
 	describe \times ->
-		specify 'expects a rule to succeed at least x times' ->
+		specify 'expects a rule to succeed at least x times and stops' ->
 			rule = any! |> times 3
 			input |> rule |> should-match [\s, \t, \r], 3
 		specify 'fails when a rule does not match enough times' ->
 			rule = char \s |> times 2
 			input |> rule |> should-fail-with-message "expected 's' 1 more time(s)"
-		specify 'succeeds when a rule is required to match 0 times' ->
+		specify 'always succeeds when a rule is required to match 0 times' ->
 			rule = char \a |> times 0
 			input |> rule |> should-match [], 0
 		specify 'fails when a rule never matches but should at least once' ->
@@ -199,6 +199,17 @@ describe \Parser ->
 		specify 'succeeds on a single success' ->
 			rule = char \s |> at-least-once
 			input |> rule |> should-match [\s], 1
+
+	describe \at-least ->
+		specify 'executes at least x times and continues' ->
+			rule = any! |> at-least 3
+			input |> rule |> should-match [\s, \t, \r, \i, \n, \g], 6
+		specify 'fails when not enough matches' ->
+			rule = char \s |> at-least 2
+			input |> rule |> should-fail-with-message "expected 's' 1 more time(s)"
+		specify 'always succeeds when a rule is required to match 0 times' ->
+			rule = char \a |> at-least 0
+			input |> rule |> should-match [], 0
 
 	describe \sequence ->
 		specify 'executes rules in sequence, passes if all pass' ->

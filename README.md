@@ -158,9 +158,11 @@ These are the rules that are included with Parse.ls.  To see basic examples of t
 
 `times (integer)` - Attempts a rule a set number of times.  A rule can match more than the specified times, but will only be applied the specified number of times.  If the input does not match enough times, the rule fails.  May be useful for parsing fixed-width fields, like dates in a YYYY-MM-DD format.  A rule requiring 0 matches will always succeed.
 
-`join-string ()` - Convenience method for joining an array result into a string.  The equivalent of `map -> it.join ''`.
+`at-least (count)` - Like `many`, but requires the rule match at least as many times as `count` - will continue to match even after `count` matches are met.
 
-`at-least-once ()` - Like `many`, but requires the rule match at least once.
+`at-least-once ()` - Like `many`, but requires the rule match at least once.  The equivalent of `at-least 1`.
+
+`join-string ()` - Convenience method for joining an array result into a string.  The equivalent of `map -> it.join ''`.
 
 `sequence (array-of-rules)` - Accepts an array of rules and requires that all rules succeed.  Returns the results of each rule in an array.
 

@@ -46,16 +46,16 @@ $then = (second, combine, first, input) --> if (res1 = first input).success then
 then-keep = (rule) -> $then rule, (x, y) -> y
 
 # Shorthand to ignore the results of the next rule in the chain
-then-ignore = (rule) -> $then rule, (x, y) -> x
+then-ignore = (rule) -> $then rule, -> it
 
 # Shorthand to add/concat the results of the previous and next rule in the chain
-then-concat = (rule) -> $then rule, (x, y) -> x + y
+then-concat = (rule) -> $then rule, (+)
 
 # Shorthand to execute the next rule in the chain, but throw away all current results
 then-null = (rule) -> $then rule, -> null
 
 # Shorthand to concat the results of the next rule under the assumption that both rules are arrays
-then-array-concat = (rule) -> $then rule, (x, y) -> x ++ y
+then-array-concat = (rule) -> $then rule, (++)
 
 # Attempts the `first` rule, if it succeeds, return its results, otherwise attempts the `second` rule.
 $or = (second, first, input) --> if (res1 = first input).success then res1 else (if (res2 = second input).success then res2 else fail "#{res1.message} or #{res2.message}", input)
@@ -89,11 +89,14 @@ times = (count, rule, input) -->
 	else
 		pass output, remaining
 
-# Convenience method for joining an array result into a string
-join-string = (rule) -> rule |> map -> it.join ''
+# Expects a rule to succeed exactly `count` times.
+at-least = (count, rule) --> rule |> times count |> then-array-concat (rule |> many)
 
 # Like `many`, but requires the rule match at least once
-at-least-once = (rule) -> rule |> (map -> [ it ]) |> (then-array-concat (many rule))
+at-least-once = (rule) -> rule |> at-least 1
+
+# Convenience method for joining an array result into a string
+join-string = (rule) -> rule |> map -> it.join ''
 
 # Requires `rules` succeed in sequence.  If any part fails, the entire sequence fails.
 sequence = (rules, input) -->
@@ -166,4 +169,4 @@ line-and-column = ({string, index}) ->
 
 	{ line, column }
 
-module.exports = { to-input, input-next, input-at-eof, input-current-letter, pass, fail, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, join-string, at-least-once, sequence, text, maybe, except, do-until, delay, end, always, parse, convert-rule-to-function, line-and-column }
+module.exports = { to-input, input-next, input-at-eof, input-current-letter, pass, fail, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, at-least, at-least-once, join-string, sequence, text, maybe, except, do-until, delay, end, always, parse, convert-rule-to-function, line-and-column }
