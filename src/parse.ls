@@ -148,7 +148,15 @@ always = (value, input) --> pass value, input
 always-new = (callback, input) --> pass callback!, input
 
 # Attempts to parse the input, returns the value if successful, otherwise false
-parse = (rule, input) --> if (res = rule input).success then res.value else false;
+parse = (rule, input) -->
+	if (res = rule input).success
+		res.value
+	else
+		message = res.message
+		if res.last-success
+			pos = line-and-column res.last-success
+			message = message + " at line #{pos.line}, column #{pos.column}"
+		throw new Error(message);
 
 # Converts a rule to a function which either returns a value, or false if the value could not be parsed.
 convert-rule-to-function = (rule, input-string) --> to-input input-string |> (rule |> parse)

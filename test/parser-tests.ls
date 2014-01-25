@@ -29,6 +29,16 @@ describe \Parser ->
 				string: \string
 				index: index
 
+	should-throw = (message, rule, input) -->
+		callback = -> input |> rule
+		try
+			callback!
+		catch error
+			eq message, error.message
+			return
+		throw new Error('Expected exception')
+
+
 	describe \simple ->
 		specify 'returns a success result and moves the input when the rule succeeds' ->
 			match-function = (c) -> c == \s
@@ -285,15 +295,24 @@ describe \Parser ->
 		specify 'returns value if rule was successful' ->
 			result = input |> (text \string |> end |> parse)
 			eq result, \string
+		specify 'throws an exception if rule fails' ->
+			input |> (text \st |> end |> parse |> should-throw 'expected end-of-input at line 1, column 3')
 
 	describe \convert-rule-to-function ->
-		specify 'creates a reusable function which returns simplified results' ->
-			rule = char \s |> then-concat (char \t)
-			rule-function = convert-rule-to-function rule
+		rule = char \s |> then-concat (char \t)
+		rule-function = convert-rule-to-function rule
+
+		specify 'reusable function returns simplified results' ->
 			correct-result = rule-function \st
 			eq \st, correct-result
-			incorrect-result = rule-function \bad
-			eq false, incorrect-result
+
+		specify 'failed parse call throws an exception' ->
+			try
+				rule-function \bad
+			catch error
+				eq "expected 's' at line 1, column 1", error.message
+				return
+			throw new Error('expected exception')
 
 	describe \line-and-column ->
 		specify 'correctly counts \\n lines and columns' ->

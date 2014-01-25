@@ -193,9 +193,9 @@ command = get-command |> $or set-command |> $or command-block
 
 `always-new (callback)` - Always returns the result of the callback without consuming input.  Useful for returning new objects with each execution of the rule.
 
-`parse ()` - Attempts to parse the input, returns the value if successful, otherwise false
+`parse ()` - Attempts to parse the input, returns the value if successful, otherwise throws an error.
 
-`convert-rule-to-function (rule)` - Converts a rule to a function which either returns a value, or false if the value could not be parsed.
+`convert-rule-to-function ()` - Converts a rule to a function which either returns a value or throws an error if the value could not be parsed.
 
 Utility Functions
 -----------------
