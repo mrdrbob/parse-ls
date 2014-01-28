@@ -147,7 +147,7 @@ always = (value, input) --> pass value, input
 # Always returns a success with the result of the callback as the value. Does not consume input.
 always-new = (callback, input) --> pass callback!, input
 
-# Attempts to parse the input, returns the value if successful, otherwise false
+# Attempts to parse the input, returns the value if successful, otherwise throws an exception
 parse = (rule, input) -->
 	if (res = rule input).success
 		res.value
@@ -158,7 +158,7 @@ parse = (rule, input) -->
 			message = message + " at line #{pos.line}, column #{pos.column}"
 		throw new Error(message);
 
-# Converts a rule to a function which either returns a value, or false if the value could not be parsed.
+# Converts a rule to a function which either returns a value, or throws an exception if the value could not be parsed.
 convert-rule-to-function = (rule, input-string) --> to-input input-string |> (rule |> parse)
 
 # Converts an index into a line and column position to make errors easier to find in text editors
