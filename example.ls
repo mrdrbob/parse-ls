@@ -75,8 +75,8 @@ string-rule = quote
 	|> then-ignore quote
 
 # Finally, conver the rule into a function that can be called with just a string
-# for input, and returns either a parsed result, or false if any part of the rule
-# fails.
+# for input, and returns either a parsed result, or throws an exception with 
+# details about the where the rule failed.
 parse-function = convert-rule-to-function string-rule
 
 # Now try parsing some input:
