@@ -1,6 +1,6 @@
 
 { equal: eq, deep-equal: deep-eq } = require 'assert'
-{ to-input, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, at-least, at-least-once, join-string, sequence, text, maybe, except, do-until, delay, end, always, always-new, parse, convert-rule-to-function, line-and-column } = (require '../src/parse')
+{ to-input, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, at-least, at-least-once, join-string, as-array, as-object-with-value, then-set, sequence, text, maybe, except, do-until, delay, end, always, always-new, parse, convert-rule-to-function, line-and-column } = (require '../src/parse')
 
 describe \Parser ->
 	describe \to-input ->
@@ -220,6 +220,23 @@ describe \Parser ->
 		specify 'always succeeds when a rule is required to match 0 times' ->
 			rule = char \a |> at-least 0
 			input |> rule |> should-match [], 0
+
+	describe \as-array ->
+		specify 'returns any result as an array of 1, containing the result' ->
+			rule = (text \str) |> as-array
+			input |> rule |> should-match [ \str ], 3
+
+	describe \as-object-with-value ->
+		specify 'returns an object with the current result as a property of that object' ->
+			rule = (text \str) |> as-object-with-value 'firstChars'
+			input |> rule |> should-match { firstChars: \str }, 3
+
+	describe \then-set ->
+		specify 'sets a property of the current result to the result of the next rule' ->
+			rule = (text \str) 
+				|> as-object-with-value 'firstChars'
+				|> then-set 'lastChars', (text \ing)
+			input |> rule |> should-match { firstChars: \str, lastChars: \ing }, 6
 
 	describe \sequence ->
 		specify 'executes rules in sequence, passes if all pass' ->

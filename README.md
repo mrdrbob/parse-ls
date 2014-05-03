@@ -5,6 +5,15 @@ Parse.ls is a library for writing parsers in [LiveScript](http://livescript.net/
 
 Parse.ls has no dependencies, but works best with LiveScript's syntax.  Parse.ls requires the entire string be loaded into memory, so it's probably not the best choice for parsing large streams of data.
 
+Install
+-------
+
+Just install via NPM:
+
+`npm install --save parse-ls`
+
+You can either `require` the entire library as variable: `parse = require 'parse-ls'`, or just the rules you need: `{ char, $or, any, except, then-keep, then-ignore, many, join-string, convert-rule-to-function } = require 'parse-ls'`.  With the former, you'll need to prefix every rule with `parse.`.  All examples and documentation use the latter, preferred method.
+
 A Short Example
 ---------------
 
@@ -28,6 +37,11 @@ string-rule = quote
 parse-string-literal = convert-rule-to-function string-rule
 parse-string-literal '"I love \\"unnecessary\\" quotes!"' # I love "unnecessary" quotes!
 ```
+
+Recent Changes
+--------------
+
+Added 3 new convenience functions: `as-array`, `as-object-with-value`, and `then-set`.  See below in Available Rules for detailed descriptions of each.
 
 What is a Rule?
 ---------------
@@ -150,6 +164,8 @@ These are the rules that are included with Parse.ls.  To see basic examples of t
 
 `then-array-concat (rule)` - `$then` shorthand to concatenate the results of the next rule under the assumption that both rules return arrays.
  
+`then-set (name, rule)` - `$then` shorthand that sets a property on the current result to the value returned by the next rule.  For example: `headers |> as-object-with-value 'requestHeader' |> then-set 'requestDomain', domain` might return `{ requestHeader: 'Some value', requestDomain: 'other value' }`
+
 `$or (rule)` - Attempts the `first` rule, if it succeeds, return its results, otherwise attempts the `second` rule.
 
 `any-of (array-of-rules)` - Accepts an array of rules and returns the first result that succeeds.
@@ -163,6 +179,10 @@ These are the rules that are included with Parse.ls.  To see basic examples of t
 `at-least-once ()` - Like `many`, but requires the rule match at least once.  The equivalent of `at-least 1`.
 
 `join-string ()` - Convenience method for joining an array result into a string.  The equivalent of `map -> it.join ''`.
+
+`as-array ()` - Convenience method for changing a single result into an array of 1 result.  Useful when the following rules return arrays and you wish to concatenate them.  For example, an identifier might allow only letters for the first character, followed by letters or numbers, might look like: `(letter |> as-array) |> then-array-concat (letter-or-number |> many)`.  Equivalent to `map -> [it]`, but potentially more readable.
+
+`as-object-with-value (name)` - Converts a result into an object with a property of `name` that is the result. For example, `headers |> as-object-with-value 'requestHeader'` might return `{ requestHeader: 'Some value' }`
 
 `sequence (array-of-rules)` - Accepts an array of rules and requires that all rules succeed.  Returns the results of each rule in an array.
 

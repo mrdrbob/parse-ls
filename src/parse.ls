@@ -98,6 +98,23 @@ at-least-once = (rule) -> rule |> at-least 1
 # Convenience method for joining an array result into a string
 join-string = (rule) -> rule |> map -> it.join ''
 
+# Convenience method for changing a single result into an array of 1 result.  Useful when
+# the following rules return arrays and you wish to concatenate them.  For example, an 
+# identifier might allow only letters for the first character, followed by letters or numbers, might
+# look like: (letter |> as-array) |> then-array-concat (letter-or-number |> many)
+# Equivalent to `map -> [it]`
+as-array = (rule) -> rule |> map -> [ it ]
+
+# Converts a result into an object with a property of `name` that is the result.
+# For example, `headers |> as-object-with-value 'requestHeader'` might return `{ requestHeader: 'Some value' }`
+as-object-with-value = (name, rule) --> rule |> map -> (obj = {})[name] = it; obj
+
+# Sets a property on the current result to value returned by rule.  Useful if your current result
+# is an object, this is a shorthand way of setting a value on that result.  For example:
+# headers |> as-object-with-value 'requestHeader' |> then-set 'requestDomain', domain` might return
+# `{ requestHeader: 'Some value', requestDomain: 'other value' }`
+then-set = (name, rule) --> $then rule, (x, y) -> x[name] = y; x
+
 # Requires `rules` succeed in sequence.  If any part fails, the entire sequence fails.
 sequence = (rules, input) -->
 	remaining = input
@@ -180,4 +197,4 @@ line-and-column = ({string, index}) ->
 
 	{ line, column }
 
-module.exports = { to-input, input-next, input-at-eof, input-current-letter, pass, fail, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, at-least, at-least-once, join-string, sequence, text, maybe, except, do-until, delay, end, always, always-new, parse, convert-rule-to-function, line-and-column }
+module.exports = { to-input, input-next, input-at-eof, input-current-letter, pass, fail, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, at-least, at-least-once, join-string, as-array, as-object-with-value, then-set, sequence, text, maybe, except, do-until, delay, end, always, always-new, parse, convert-rule-to-function, line-and-column }
