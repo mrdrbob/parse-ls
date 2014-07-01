@@ -41,7 +41,7 @@ parse-string-literal '"I love \\"unnecessary\\" quotes!"' # I love "unnecessary"
 Recent Changes
 --------------
 
-Added 3 new convenience functions: `as-array`, `as-object-with-value`, and `then-set`.  See below in Available Rules for detailed descriptions of each.
+`convert-rule-to-function` is now throwing a `ParseError`, which includes the `position` and `last-success` info normally attached to a result object.  The `last-success` object can be helpful when debugging.
 
 What is a Rule?
 ---------------

@@ -1,3 +1,15 @@
+{ inherits } = require \util
+
+!function ParseError message, last-success, position
+	Error.call this
+	Error.captureStackTrace this, arguments.callee
+	this.message = message
+	@name = @@name
+	@last-success = last-success
+	@position = position
+
+
+inherits ParseError, Error
 
 # Converts a string to a standard input object which rules will know how to process.
 to-input = (str) -> 
@@ -172,8 +184,8 @@ parse = (rule, input) -->
 		message = res.message
 		if res.last-success
 			pos = line-and-column res.last-success
-			message = message + " at line #{pos.line}, column #{pos.column}"
-		throw new Error(message);
+			message = "#{message} at line #{pos.line}, column #{pos.column}"
+		throw new ParseError message, res.last-success, pos
 
 # Converts a rule to a function which either returns a value, or throws an exception if the value could not be parsed.
 convert-rule-to-function = (rule, input-string) --> to-input input-string |> (rule |> parse)
