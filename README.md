@@ -48,34 +48,20 @@ What is a Rule?
 
 In parse.ls, a rule is a simple function that accepts an input and returns a result, with either a success status or a failure status.
 
-Rules expect input in the following format:
+The input is any object with the following functions:
 
-```json
-{
-	"string": "An example input",
-	"index": 5
-}
-```
-
-The input contains a reference to the full `string` being evaluated, and an `index` of where the parser is currently at.  Input in this format should be treated as immutable.  When a rule consumes input, it does not change the current input, but returns a new input with only the `index` changed.  IE:
-
-```json
-{
-	"string": "An example input",
-	"index": 6
-}
-```
+- `current`: Returns the current token in the stream (in a string example, this would be a single character)
+- `at-eof`: Returns true if the input has reached the end.
+- `next`: Returns a new input object advanced one token
+- `pos`: Returns an object with the line number and column number of the current position (e.g. {line:15, column:3}).  This is used when errors are incurred.
 
 Rules should return output in one of the following formats.  For a failure, the rule returns failure status, the successfully parsed input so far (in the same format as above), and any last known parsed value if applicable:
 
 ```json
 {
 	"success": false,
-	"message": "expected 'z'"
-	"lastSuccess": {
-		"string": "An example input",
-		"index": 6
-	},
+	"message": "expected 'z'",
+	"lastSuccess": lastSuccessfullyProcessedInput
 	"lastValue": "a"
 }
 ```
@@ -86,10 +72,7 @@ For a success:
 {
 	"success": true,
 	"value": "[the parsed value]",
-	"remaining": {
-		"string": "An example input",
-		"index": 7
-	}
+	"remaining": theNextInputObjectToProcess
 }
 ```
 
@@ -100,10 +83,10 @@ For example, he's a simple rule that will match any numeric digit passed to it, 
 ```ls
 matches-digit = (input) ->
 	# if we're at the end of the input, return failure.
-	return { success: false, message: 'unexpected end of file', last-success: input } if (input.index >= input.string.length)
+	return { success: false, message: 'unexpected end of file', last-success: input } if (input.at-eof!)
 
 	# get the current char
-	current-character = input.string.charAt input.index
+	current-character = input.current!
 
 	# see if it's in range
 	is-in-range = current-character >= \0 && current-character <= \9
@@ -118,10 +101,7 @@ matches-digit = (input) ->
 		{
 			success: true,
 			value: current-character,
-			remaining: {
-				string: input.string,
-				index: input.index + 1
-			}
+			remaining: input.next!
 		}
 ```
 
@@ -138,7 +118,9 @@ Available Rules
 
 These are the rules that are included with Parse.ls.  To see basic examples of these rules in use, check out the [unit tests](test/parser-tests.ls) or [example.ls](example.ls).
 
-`to-input (string)`: Rules require the input be a specific format.  This is a convenience method to convert strings to that format.
+`to-input (string)`: Rules require the input be a specific format.  This is a convenience method to convert strings (or even an array of tokens) to that format.
+
+`to-backwards-input (string)`: Like `to-input`, except the string or array of tokens is iterated backwards.
 
 `simple (delegate)` - The most basic rule.  It accepts a delegate that accepts one parameter (the individual character being tested), and returns true if the letter is matched, otherwise false.
  

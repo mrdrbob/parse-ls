@@ -1,11 +1,11 @@
 
 { equal: eq, deep-equal: deep-eq } = require 'assert'
-{ to-input, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, at-least, at-least-once, join-string, as-array, as-object-with-value, then-set, sequence, text, maybe, except, do-until, delay, end, always, always-new, parse, convert-rule-to-function, line-and-column } = (require '../src/parse')
+{ to-input, to-backwards-input, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, at-least, at-least-once, join-string, as-array, as-object-with-value, then-set, sequence, text, maybe, except, do-until, delay, end, always, always-new, parse, convert-rule-to-function, line-and-column } = (require '../src/parse')
 
 describe \Parser ->
 	describe \to-input ->
 		specify 'should convert a string into an input object' ->
-			result = 'This is a test' |> to-input
+			result = 'This is a test' |> to-input |> (.value!)
 			deep-eq result, do
 				string: 'This is a test',
 				index: 0
@@ -22,12 +22,8 @@ describe \Parser ->
 		eq message, res.message
 
 	should-match = (value, index, res) -->
-		deep-eq res, do
-			success: true
-			value: value
-			remaining:
-				string: \string
-				index: index
+		deep-eq { success: true, value } { res.success, res.value }
+		deep-eq { string: \string, index: index },  res.remaining.value!
 
 	should-throw = (message, rule, input) -->
 		callback = -> input |> rule
@@ -38,6 +34,28 @@ describe \Parser ->
 			return
 		throw new Error('Expected exception')
 
+	describe \to-backwards-input ->
+		specify 'creates an input object with expected functions' ->
+			result = ('test' |> to-backwards-input)
+			eq \function, typeof result.at-eof
+			eq \function, typeof result.current
+			eq \function, typeof result.next
+			eq \function, typeof result.pos
+		specify 'reports at eof immediately on empty strings' ->
+			inp = ('' |> to-backwards-input)
+			eq true, inp.at-eof!
+		specify 'return results backwards' ->
+			inp = ('123' |> to-backwards-input)
+			eq false, inp.at-eof!
+			eq '3', inp.current!
+			two = inp.next!
+			eq false, two.at-eof!
+			eq '2', two.current!
+			one = two.next!
+			eq false, one.at-eof!
+			eq '1', one.current!
+			done = one.next!
+			eq true, done.at-eof!
 
 	describe \simple ->
 		specify 'returns a success result and moves the input when the rule succeeds' ->
@@ -62,7 +80,7 @@ describe \Parser ->
 			result = input |> (match-s |> then-concat match-a)
 			eq false, result.success
 			eq 'expected "a"', result.message
-			eq 1, result.last-success.index
+			eq 1, result.last-success.value!.index
 		specify 'should not affect successes' ->
 			match-function = (c) -> c == \s
 			result = input |> (simple match-function |> with-error-message 'expected "s"') |> should-match \s, 1

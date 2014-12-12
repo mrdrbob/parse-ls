@@ -11,19 +11,20 @@
 
 inherits ParseError, Error
 
-# Converts a string to a standard input object which rules will know how to process.
-to-input = (str) -> 
-	string: str
-	index: 0
+# Creates an interface to a string (or token array) that conforms to the expectations of the rules
+to-input = (str, index = 0) -> 
+	current: -> str[index]
+	at-eof: -> index >= str.length
+	next: -> to-input str, index + 1
+	pos: -> line-and-column { string: str, index }
+	value: -> { string: str, index }
 
-# Utility function to take an input and return the input at the next point.
-input-next = ({string, index}) -> {string, index: index + 1}
-
-# Utility function that validates that the input is not at or beyond the end of input.
-input-at-eof = ({string, index}) -> index >= string.length
-
-# Utility function that returns the character at the current index.
-input-current-letter = ({string, index}) -> string.charAt(index)
+to-backwards-input = (str, index = str.length - 1) ->
+	current: -> str[index]
+	at-eof: -> index < 0
+	next: -> to-backwards-input str, index - 1
+	pos: -> line-and-column { string: str, index: (str.length - index) }
+	value: -> { string: str, index }
 
 # Utility function to create successful result object
 pass = (value, remaining) -> { success: true, value, remaining }
@@ -35,7 +36,7 @@ fail = (message, last-success, last-value) -> { success: false, message, last-su
 with-error-message = (message, rule, input) --> if (res = rule input).success then res else fail message, res.last-success, res.last-value
 
 # A basic rule.  `test` should be a function that expects 1 character and returns true if that character matches the critera.
-simple = (test, input) --> if !(input-at-eof input) && test (value = input-current-letter input) then pass value, (input-next input) else fail 'simple rule failed', input
+simple = (test, input) --> if !(input.at-eof!) && test (value = input.current!) then pass value, (input.next!) else fail 'simple rule failed', input
 
 # A simple rule that always succeeds and consumes input.
 any = -> simple -> true
@@ -155,7 +156,7 @@ except = (bad, rule, input) --> if (bad input).success then fail 'except matched
 do-until = (bad, rule) --> rule |> except bad |> many
 
 # Rule to exept the input to be at the end
-expect-end = (input) -> if input-at-eof input then pass null, input else fail 'expected end-of-input', input
+expect-end = (input) -> if input.at-eof! then pass null, input else fail 'expected end-of-input', input
 
 # Convience method to tack on to a rule chain to ensure input is completely consumed.
 end = (rule) -> rule |> then-ignore expect-end
@@ -183,7 +184,7 @@ parse = (rule, input) -->
 	else
 		message = res.message
 		if res.last-success
-			pos = line-and-column res.last-success
+			pos = line-and-column res.last-success.value!
 			message = "#{message} at line #{pos.line}, column #{pos.column}"
 		throw new ParseError message, res.last-success, pos
 
@@ -209,4 +210,4 @@ line-and-column = ({string, index}) ->
 
 	{ line, column }
 
-module.exports = { to-input, input-next, input-at-eof, input-current-letter, pass, fail, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, at-least, at-least-once, join-string, as-array, as-object-with-value, then-set, sequence, text, maybe, except, do-until, delay, end, always, always-new, parse, convert-rule-to-function, line-and-column }
+module.exports = { to-input, to-backwards-input, pass, fail, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, at-least, at-least-once, join-string, as-array, as-object-with-value, then-set, sequence, text, maybe, except, do-until, delay, end, always, always-new, parse, convert-rule-to-function, line-and-column }
