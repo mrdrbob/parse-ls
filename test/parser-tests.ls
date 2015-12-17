@@ -1,6 +1,6 @@
 
 { equal: eq, deep-equal: deep-eq } = require 'assert'
-{ to-input, to-backwards-input, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, at-least, at-least-once, join-string, as-array, as-object-with-value, then-set, sequence, text, maybe, except, do-until, delay, end, always, always-new, parse, convert-rule-to-function, line-and-column } = (require '../src/parse')
+{ to-input, to-backwards-input, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, many, times, at-least, at-least-once, join-string, as-array, as-object-with-value, then-set, sequence, text, maybe, invert, delay, end, always, always-new, parse, convert-rule-to-function, line-and-column } = (require '../src/parse')
 
 describe \Parser ->
 	describe \to-input ->
@@ -91,6 +91,29 @@ describe \Parser ->
 			input |> any! |> should-match \s, 1
 		specify 'fails when at eof' ->
 			'' |> to-input |> any! |> should-fail
+		specify 'matches rule in list and returns its result' ->
+			a = char \a
+			s = char \s
+			d = char \d
+			f = char \f
+			input |> any a,s,d,f |> should-match \s, 1
+		specify 'fails when at eof and rules are specified' ->
+			a = char \a
+			s = char \s
+			d = char \d
+			f = char \f
+			'' |> to-input |> any a,s,d,f |> should-fail
+		specify 'exits early when a matching rule is found' ->
+			a = char \a
+			s = char \s
+			d = char \d
+			f = char \f |> map -> throw 'Should never happen'
+			input |> any a,s,d,f |> should-match \s, 1
+		specify 'fails when nothing matches' ->
+			a = char \a
+			d = char \d
+			f = char \f |> map -> throw 'Should never happen'
+			input |> any a, d, f |> should-fail
 
 	describe \char ->
 		specify 'successfully matches a single character' ->
@@ -145,49 +168,6 @@ describe \Parser ->
 		specify 'can concat array results' ->
 			rule = char \s |> (map -> [it]) |> then-array-concat (char \t |> (map -> [it]))
 			input |> rule |> should-match [\s, \t], 2
-
-	describe \$or ->
-		specify 'succeeds when first rule passes' ->
-			rule = char \s |> $or (char \t)
-			input |> rule |> should-match \s, 1
-		specify 'succeeds when second rule passes' ->
-			rule = char \t |> $or (char \s)
-			input |> rule |> should-match \s, 1
-		specify 'fails when both rules fail' ->
-			rule = char \a |> $or (char \b)
-			input |> rule |> should-fail
-		specify 'should short-curcuit' ->
-			debug-has-run = false
-			rule = char \s |> $or (char \t |> (debug -> debug-has-run := true))
-			input |> rule |> should-match \s, 1
-			eq false, debug-has-run
-		specify 'returns both all messages when both rules fail' ->
-			rule = char \a |> $or (char \b) |> $or (char \c)
-			err = input |> rule
-			eq false, err.success
-			eq "expected 'a' or expected 'b' or expected 'c'", err.message
-
-	describe \any-of ->
-		specify 'returns result of first successful rule' ->
-			first-run = false
-			second-run = false
-			first-rule = char \s |> debug -> first-run := true
-			second-rule = char \a |> debug -> second-run := true
-			rule = any-of [first-rule,  second-rule]
-			input |> rule |> should-match \s, 1
-			eq true, first-run
-			eq false, second-run
-		specify 'returns result if first rule fails' ->
-			first-run = false
-			second-run = false
-			first-rule = char \a |> debug -> first-run := true
-			second-rule = char \s |> debug -> second-run := true
-			rule = any-of [first-rule,  second-rule]
-			input |> rule |> should-match \s, 1
-			eq false, first-run
-			eq true, second-run
-		specify 'fails if no rule matches' ->
-			input |> any-of [char \a, char \b] |> should-fail
 
 	describe \many ->
 		specify 'executes a rule many times and returns results as an array' ->
@@ -251,21 +231,21 @@ describe \Parser ->
 
 	describe \then-set ->
 		specify 'sets a property of the current result to the result of the next rule' ->
-			rule = (text \str) 
+			rule = (text \str)
 				|> as-object-with-value 'firstChars'
 				|> then-set 'lastChars', (text \ing)
 			input |> rule |> should-match { firstChars: \str, lastChars: \ing }, 6
 
 	describe \sequence ->
 		specify 'executes rules in sequence, passes if all pass' ->
-			rules = 
+			rules =
 				char \s
 				char \t
 				char \r
 				...
 			input |> sequence rules |> should-match [\s, \t, \r], 3
 		specify 'fails when any rule fails' ->
-			rules = 
+			rules =
 				char \s
 				char \r
 				char \t
@@ -286,18 +266,11 @@ describe \Parser ->
 		specify 'should allow successful matches' ->
 			input |> (text \str |> maybe) |> should-match \str, 3
 
-	describe \except ->
-		specify 'should match any except' ->
-			not-i = any! |> except (char \i)
-			input |> (not-i |> many |> join-string) |> should-match \str, 3
-
-	describe \do-until ->
-		specify 'should match until rule matches' ->
-			input |> (any! |> do-until (char \n) |> join-string ) |> should-match \stri, 4
-		specify 'should succeed even with no matches' ->
-			input |> (any! |> do-until (char \s) |> join-string ) |> should-match '', 0
-		specify 'should succeed until eof' ->
-			input |> (any! |> do-until (char \1) |> join-string ) |> should-match \string, 6
+	describe \invert ->
+		specify 'should allow failed matches' ->
+			input |> (char \a |> invert) |> should-match \s, 1
+			specify 'should fail matches' ->
+				input |> (char \s |> invert) |> should-fail
 
 	describe \end ->
 		specify 'should fail when input is remaining' ->
@@ -319,7 +292,7 @@ describe \Parser ->
 	describe \delay ->
 		specify 'returns a rule at parse time' ->
 			called = 0
-			delayed = delay (input) -> 
+			delayed = delay (input) ->
 				called := called + 1
 				if called == 1 then (char \s) else (char \t)
 			rule = delayed |> then-concat delayed
@@ -377,3 +350,21 @@ describe \Parser ->
 			deep-eq result, do
 				line: 3,
 				column: 2
+
+	describe \documentation ->
+		specify 'quoted string example works' ->
+			quote = char '"'
+			slash = char '\\'
+			escapable = any quote, slash
+			escaped-character = slash |> then-keep escapable
+			unescaped-character = invert escapable
+			valid-character = any escaped-character, unescaped-character
+			inner-content = valid-character |> many |> join-string
+			string-rule = quote
+				|> then-keep inner-content
+				|> then-ignore quote
+			
+			parse-function = convert-rule-to-function string-rule
+			result = parse-function '"A \\"quoted\\" string with \\\\ slahes"'
+
+			eq 'A "quoted" string with \\ slahes', result

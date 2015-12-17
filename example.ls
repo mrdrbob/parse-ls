@@ -24,7 +24,8 @@
 # result.
 
 # To start, we import all the functions we're using from the parse.ls library.
-{ char, $or, any, except, then-keep, then-ignore, many, join-string, convert-rule-to-function } = require './src/parse'
+{ char, any, invert, then-keep, then-ignore, many, join-string, convert-rule-to-function } = require './src/parse'
+
 # This is the preferred method for importing functions, but you could also do:
 # `parser = require './src/parse'` and then prefix any function with `parser.`
 #
@@ -37,10 +38,10 @@
 quote = char '"'
 slash = char '\\'
 
-# Next we define which characters must be escaped in the content of the string.  By 
-# piping to the `$or` function, we make a rule that will match either the `quote` rule
-# OR the `slash` rule.
-escapable = quote |> $or slash
+# Next we define which characters must be escaped in the content of the string.  We
+# pass rules for all characters that will require an escape character to `any` to 
+# produce a rule that matches either case.
+escapable = any quote, slash
 
 # We define an escaped character: a slash followed by an escapable character. Here
 # we pipe the slash character into the then-keep function.  The then-keep function 
@@ -51,14 +52,13 @@ escapable = quote |> $or slash
 escaped-character = slash |> then-keep escapable
 
 # Next we define all the characters that do not require an escape code.  This would
-# be everything that isn't an `escapable` character.  This is done by calling `any!`, 
-# which creates a rule that matches anything, then piping to `except` which  will 
-# fail if the rule passed to it matches (`escapable`).
-unescaped-character = any! |> except escapable
+# be everything that isn't an `escapable` character.  We just invert the `escapable`
+# rule for this.
+unescaped-character = invert escapable
 
 # Now to combine the two types of characters that are valid inside the string, 
 # `escaped-character` and `unescaped-character`.
-valid-character = escaped-character |> $or unescaped-character
+valid-character = any escaped-character, unescaped-character
 
 # Now that we have a rule that will match any character that is valid for the inner
 # content, we need to repeat that rule until it fails.  That's exactly what `many`

@@ -12,7 +12,7 @@
 inherits ParseError, Error
 
 # Creates an interface to a string (or token array) that conforms to the expectations of the rules
-to-input = (str, index = 0) -> 
+to-input = (str, index = 0) ->
 	current: -> str[index]
 	at-eof: -> index >= str.length
 	next: -> to-input str, index + 1
@@ -38,8 +38,17 @@ with-error-message = (message, rule, input) --> if (res = rule input).success th
 # A basic rule.  `test` should be a function that expects 1 character and returns true if that character matches the critera.
 simple = (test, input) --> if !(input.at-eof!) && test (value = input.current!) then pass value, (input.next!) else fail 'simple rule failed', input
 
-# A simple rule that always succeeds and consumes input.
-any = -> simple -> true
+# If no parameters are passed, then rule matches any input, otherwise will succeed with value of first matching rule, otherwise fails
+any = (...rules) ->
+	console.log rules?
+	if !rules.length
+		simple -> true
+	else
+		(input) ->
+			for rule in rules
+				if (res = rule input).success
+					return res
+			fail 'No rule matched', null, null
 
 # Matches a single character.
 char = (c) -> (simple -> it == c) |> with-error-message "expected '#{c}'"
@@ -70,16 +79,6 @@ then-null = (rule) -> $then rule, -> null
 # Shorthand to concat the results of the next rule under the assumption that both rules are arrays
 then-array-concat = (rule) -> $then rule, (++)
 
-# Attempts the `first` rule, if it succeeds, return its results, otherwise attempts the `second` rule.
-$or = (second, first, input) --> if (res1 = first input).success then res1 else (if (res2 = second input).success then res2 else fail "#{res1.message} or #{res2.message}", input)
-
-# Returns the first result that matches any of the provied `rules`
-any-of = (rules, input) -->
-	for r in rules
-		if (res = r input).success
-			return res
-	fail 'any-of failed', input
-
 # Attempts a rule repeatedly until it fails, returning results in an array.  Rules that fail immediately still succeed with empty arrays
 many = (rule, input) -->
 	output = []
@@ -102,7 +101,7 @@ times = (count, rule, input) -->
 	else
 		pass output, remaining
 
-# Expects a rule to succeed exactly `count` times.
+# Expects a rule to succeed at least `count` times.
 at-least = (count, rule) --> rule |> times count |> then-array-concat (rule |> many)
 
 # Like `many`, but requires the rule match at least once
@@ -112,7 +111,7 @@ at-least-once = (rule) -> rule |> at-least 1
 join-string = (rule) -> rule |> map -> it.join ''
 
 # Convenience method for changing a single result into an array of 1 result.  Useful when
-# the following rules return arrays and you wish to concatenate them.  For example, an 
+# the following rules return arrays and you wish to concatenate them.  For example, an
 # identifier might allow only letters for the first character, followed by letters or numbers, might
 # look like: (letter |> as-array) |> then-array-concat (letter-or-number |> many)
 # Equivalent to `map -> [it]`
@@ -143,17 +142,14 @@ sequence = (rules, input) -->
 text = (value) ->
 	rules = []
 	for c in value
-		rules.push (char c) 
+		rules.push (char c)
 	sequence rules |> join-string
 
 # Makes the preceeding rule optional.  If the rule doesn't match, a success result with a null value is returned.
 maybe = (rule, input) --> if (res = rule input).success then res else pass null, input
 
-# Matches anything that doesn't match the `bad` rule.
-except = (bad, rule, input) --> if (bad input).success then fail 'except matched', input else (rule input)
-
-# Matches until `bad` rule succeeds
-do-until = (bad, rule) --> rule |> except bad |> many
+# Negates a rule.  Returns anything that doesn't match the rule.
+invert = (rule, input) --> if (res = rule input).success then fail 'unexpected input' else pass input.current!, input.next!
 
 # Rule to exept the input to be at the end
 expect-end = (input) -> if input.at-eof! then pass null, input else fail 'expected end-of-input', input
@@ -167,7 +163,7 @@ end = (rule) -> rule |> then-ignore expect-end
 # command-block = char '{'
 # 	|> then-keep (command-delay |> many)
 #		|> then-ignore (char '}')
-# command = get-command |> $or (set-command) |> $or command-block
+# command = any get-command, set-command, command-block
 #
 delay = (getRule, input) --> getRule! input
 
@@ -184,7 +180,7 @@ parse = (rule, input) -->
 	else
 		message = res.message
 		if res.last-success
-			pos = line-and-column res.last-success.value!
+			pos = res.last-success.pos!
 			message = "#{message} at line #{pos.line}, column #{pos.column}"
 		throw new ParseError message, res.last-success, pos
 
@@ -210,4 +206,4 @@ line-and-column = ({string, index}) ->
 
 	{ line, column }
 
-module.exports = { to-input, to-backwards-input, pass, fail, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, $or, any-of, many, times, at-least, at-least-once, join-string, as-array, as-object-with-value, then-set, sequence, text, maybe, except, do-until, delay, end, always, always-new, parse, convert-rule-to-function, line-and-column }
+module.exports = { to-input, to-backwards-input, pass, fail, simple, with-error-message, any, char, map, debug, $then, then-keep, then-ignore, then-concat, then-null, then-array-concat, many, times, at-least, at-least-once, join-string, as-array, as-object-with-value, then-set, sequence, text, maybe, invert, delay, end, always, always-new, parse, convert-rule-to-function, line-and-column }

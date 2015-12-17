@@ -20,28 +20,31 @@ A Short Example
 Here's a parser that would parse something like a Javascript string literal (with double quotes).  For a heavily commented version of this code, see [example.ls](example.ls).  For an example that will do both single and double quotes, see [dynamic-example.ls](dynamic-example.ls).
 
 ```ls
-{ char, $or, any, except, then-keep, then-ignore, many, join-string, convert-rule-to-function } = require 'parse-ls'
+{ char, any, invert, then-keep, then-ignore, many, join-string, convert-rule-to-function } = require 'parse-ls'
 
 quote = char '"'
 slash = char '\\'
-
-escapable = quote |> $or slash
+escapable = any quote, slash
 escaped-character = slash |> then-keep escapable
-unescaped-character = any! |> except escapable
-valid-character = escaped-character |> $or unescaped-character
+unescaped-character = invert escapable
+valid-character = any escaped-character, unescaped-character
 inner-content = valid-character |> many |> join-string
 string-rule = quote
 	|> then-keep inner-content
 	|> then-ignore quote
 
-parse-string-literal = convert-rule-to-function string-rule
-parse-string-literal '"I love \\"unnecessary\\" quotes!"' # I love "unnecessary" quotes!
+parse-function = convert-rule-to-function string-rule
+result = parse-function '"A \\"quoted\\" string with \\\\ slahes"'
+
+eq 'A "quoted" string with \\ slahes', result
 ```
 
 Recent Changes
 --------------
 
-`convert-rule-to-function` is now throwing a `ParseError`, which includes the `position` and `last-success` info normally attached to a result object.  The `last-success` object can be helpful when debugging.
+Updated `any` to accept a list of rules and succeed with the first one that succeeds (or fail if none succeed).  Removed `$or` since it now duplicates functionality in `any`.
+
+Added `invert` to invert the result of any rule.  Removed `do-until` and `except`, as these can be easily done with the `invert` rule.
 
 What is a Rule?
 ---------------
@@ -61,7 +64,7 @@ Rules should return output in one of the following formats.  For a failure, the 
 {
 	"success": false,
 	"message": "expected 'z'",
-	"lastSuccess": lastSuccessfullyProcessedInput
+	"lastSuccess": lastSuccessfullyProcessedInput,
 	"lastValue": "a"
 }
 ```
@@ -126,7 +129,7 @@ These are the rules that are included with Parse.ls.  To see basic examples of t
  
 `with-error-message(message)` - A rule to change the error message from the last rule (if it fails).  This is useful for rules like `simple` that just return generic error messages.  For example, an error message from `match-a = simple (c) -> c == \a` would simply say `simple rule failed`.  To make the error message more clear, you could do this: `match-a = (simple (c) -> c == \a) |> with-error-message 'expected "a"``.
 
-`any ()` - Will match any character at all and consume that input.  If the input is at the end, it will fail.
+`any (...)` - If passed a set of rules, it will return whichever rule matches first or fail.  If no rules are passed, it will match anything without consuming input.
 
 `char (character)` - Matches an individual, specific character.
 
@@ -147,8 +150,6 @@ These are the rules that are included with Parse.ls.  To see basic examples of t
 `then-array-concat (rule)` - `$then` shorthand to concatenate the results of the next rule under the assumption that both rules return arrays.
  
 `then-set (name, rule)` - `$then` shorthand that sets a property on the current result to the value returned by the next rule.  For example: `headers |> as-object-with-value 'requestHeader' |> then-set 'requestDomain', domain` might return `{ requestHeader: 'Some value', requestDomain: 'other value' }`
-
-`$or (rule)` - Attempts the `first` rule, if it succeeds, return its results, otherwise attempts the `second` rule.
 
 `any-of (array-of-rules)` - Accepts an array of rules and returns the first result that succeeds.
 
@@ -172,10 +173,8 @@ These are the rules that are included with Parse.ls.  To see basic examples of t
 
 `maybe ()` - Makes the preceding rule optional.  If the rule doesn't match, a success result with a null value is returned.
  
-`except (rule)` - Accepts a rule as an argument, and matches anything that doesn't match that rule.
+`invert (rule)` - Inverts a rule, accepting anything that doesn't match the rule.
  
-`do-until (rule)` - Accepts a rule as an argument, and matches anything until that rule matches, and returns the results in an array.
-
 `expect-end ()` - A rule that expects the input to be at the end.  It succeeds if the input is at the end, otherwise fails.
 
 `end ()` -  Convenience method to tack on to a rule chain to ensure input is completely consumed.
