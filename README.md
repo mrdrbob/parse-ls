@@ -131,7 +131,7 @@ These are the rules that are included with Parse.ls.  To see basic examples of t
  
 `with-error-message(message)` - A rule to change the error message from the last rule (if it fails).  This is useful for rules like `simple` that just return generic error messages.  For example, an error message from `match-a = simple (c) -> c == \a` would simply say `simple rule failed`.  To make the error message more clear, you could do this: `match-a = (simple (c) -> c == \a) |> with-error-message 'expected "a"``.
 
-`any (...)` - If passed a set of rules, it will return whichever rule matches first or fail.  If no rules are passed, it will match anything without consuming input.
+`any (rules...)` - If passed a set of rules as arguments, it will return the value from whichever rule matches first or fail.  If no rules are passed, it will match any token and return it as the value.
 
 `char (character)` - Matches an individual, specific character.
 
@@ -152,8 +152,6 @@ These are the rules that are included with Parse.ls.  To see basic examples of t
 `then-array-concat (rule)` - `$then` shorthand to concatenate the results of the next rule under the assumption that both rules return arrays.
  
 `then-set (name, rule)` - `$then` shorthand that sets a property on the current result to the value returned by the next rule.  For example: `headers |> as-object-with-value 'requestHeader' |> then-set 'requestDomain', domain` might return `{ requestHeader: 'Some value', requestDomain: 'other value' }`
-
-`any (rules...)` - Accepts any number of rules as arguments.  If no rules are passed, `any` will always succeed with a null value.  If rules are passed, the first rule that succeeds is returned.  If rules are passed and no rule succeeds, a failure is returned.
 
 `many ()` - Attempts a rule repeatedly until it fails, returning results in an array.  Rules that fail immediately still succeed with empty arrays.
 

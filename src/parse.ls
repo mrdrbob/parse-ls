@@ -40,7 +40,6 @@ simple = (test, input) --> if !(input.at-eof!) && test (value = input.current!) 
 
 # If no parameters are passed, then rule matches any input, otherwise will succeed with value of first matching rule, otherwise fails
 any = (...rules) ->
-	console.log rules?
 	if !rules.length
 		simple -> true
 	else
