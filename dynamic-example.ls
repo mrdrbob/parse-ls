@@ -29,7 +29,7 @@ single-quote-rule = build-parser "'"
 wacky-quote-rule = build-parser "`"
 
 # Now a rule to accept either
-string-rule = double-quote-rule |> $or single-quote-rule |> $or wacky-quote-rule
+string-rule = any double-quote-rule, single-quote-rule, wacky-quote-rule
 
 # Convert the rule to a simpler function that we can just call
 parse-function = convert-rule-to-function string-rule

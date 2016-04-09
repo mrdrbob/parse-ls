@@ -42,6 +42,8 @@ eq 'A "quoted" string with \\ slahes', result
 Recent Changes
 --------------
 
+Changed from an object-based input to an interface based input.  If you were creating input objects by hand, you'll need to change your process.  If using `to-input`, no change should be necessary.
+
 Updated `any` to accept a list of rules and succeed with the first one that succeeds (or fail if none succeed).  Removed `$or` since it now duplicates functionality in `any`.
 
 Added `invert` to invert the result of any rule.  Removed `do-until` and `except`, as these can be easily done with the `invert` rule.
@@ -221,3 +223,4 @@ Todo
 ----
 
 - More documentation with more complete examples that make use of all included rules.
+- Example of an object that implements the input interface
