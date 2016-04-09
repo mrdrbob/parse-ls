@@ -1,5 +1,5 @@
 
-{ char, $or, any, except, then-keep, then-ignore, many, join-string, convert-rule-to-function } = require './src/parse'
+{ char, any, invert, then-keep, then-ignore, many, join-string, convert-rule-to-function } = require './src/parse'
 
 # Based on example.ls, this example builds 2 parsers based on the same
 # grammar at runtime.
@@ -11,10 +11,10 @@ build-parser = (quote-character) ->
 	quote = char quote-character
 	slash = char '\\'
 
-	escapable = quote |> $or slash
+	escapable = any quote, slash
 	escaped-character = slash |> then-keep escapable
-	unescaped-character = any! |> except escapable
-	valid-character = escaped-character |> $or unescaped-character
+	unescaped-character = invert escapable
+	valid-character = any escaped-character, unescaped-character
 	inner-content = valid-character |> many |> join-string
 
 	# return the final rule
