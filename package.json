@@ -1,6 +1,6 @@
 {
   "name": "parse-ls",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "author": "Bob Davidson <bob@pageofbob.com>",
   "description": "Parse.ls is a library for writing parsers in LiveScript.",
   "keywords": [
