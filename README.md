@@ -153,7 +153,7 @@ These are the rules that are included with Parse.ls.  To see basic examples of t
  
 `then-set (name, rule)` - `$then` shorthand that sets a property on the current result to the value returned by the next rule.  For example: `headers |> as-object-with-value 'requestHeader' |> then-set 'requestDomain', domain` might return `{ requestHeader: 'Some value', requestDomain: 'other value' }`
 
-`any-of (array-of-rules)` - Accepts an array of rules and returns the first result that succeeds.
+`any (rules...)` - Accepts any number of rules as arguments.  If no rules are passed, `any` will always succeed with a null value.  If rules are passed, the first rule that succeeds is returned.  If rules are passed and no rule succeeds, a failure is returned.
 
 `many ()` - Attempts a rule repeatedly until it fails, returning results in an array.  Rules that fail immediately still succeed with empty arrays.
 
